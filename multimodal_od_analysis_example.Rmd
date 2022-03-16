@@ -102,10 +102,10 @@ for (mode in modes){
 
 # Prepare to loop over chunks to mitigate risk of memory error, and slowing associated with this
 records <- nrow(origins)
-records <- 237
 chunk_size <- 100
-pb <- progress_bar$new(total = records)
-for(i in 1:ceiling(records / chunkSize)){  
+n_chunks <- ceiling(records / chunkSize)
+pb <- progress_bar$new(total = n_chunks)
+for(i in 1:n_chunks){  
   pb$tick()
   lower = ((i-1)*chunkSize+1)
   upper = min(records,(i*chunkSize))
@@ -166,7 +166,8 @@ for(i in 1:ceiling(records / chunkSize)){
   }
 }
 
-
+stop_r5(r5r_core)
+rJava::.jgc(R.gc = TRUE)
 ```
 
 
