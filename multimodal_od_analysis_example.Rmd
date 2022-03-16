@@ -61,7 +61,7 @@ departure_datetime <- as.POSIXct("16-10-2019 07:45:00",
 results <- list()
 
 for (mode in modes){
-  # calculate a travel time matrix
+  # calculate OD results
   results[mode] <- detailed_itineraries(  
                       r5r_core,
                       origins,
