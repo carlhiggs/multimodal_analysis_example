@@ -54,11 +54,16 @@ r5r_core <- setup_r5(data_path = data_path, verbose = FALSE)
 
 
 # set inputs
-modes <- c("BICYCLE","CAR","BUS","RAIL","TRAM","TRANSIT")
+modes <- c("BICYCLE","CAR","BUS","RAIL","TRAM")
 departure_datetime <- as.POSIXct("16-10-2019 07:45:00",
                                  format = "%d-%m-%Y %H:%M:%S")
 
 results <- list()
+
+# The following analysis only allows one PT mode to be used in a trip (max_rides=1), as its purpose 
+# is to inform modelling which requires trip chaining not be undertaken.
+# Alternately, the mode 'TRANSIT' could be run, with modification of max_rides=3, to allow a modest
+# number of transfers across different transit options.
 
 for (mode in modes){
   # calculate OD results
