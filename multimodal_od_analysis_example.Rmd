@@ -85,7 +85,7 @@ for (mode in modes){
         "CREATE TABLE IF NOT EXISTS ",
          mode,
         ' (
-        "fromId" integer,
+        "id" integer,
         "option" integer,
         "segment" integer,
         "mode" varchar(8),
