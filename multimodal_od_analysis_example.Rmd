@@ -43,14 +43,6 @@ list.files(data_path)
 port <- 5432
 host <- 'localhost'
 db <- 'multimodal_melbourne_2019'
-
-pg.RPostgres <- dbConnect(RPostgres::Postgres(), 
-                          dbname   = db,
-                          host     = host,
-                          port     = port,
-                          user     = key_get('database_user'),
-                          password = key_get('database_password'))
-
 ```
 The project directory should contain:
 - an OSM excerpt for the region of interest, (http://download.openstreetmap.fr/extracts/oceania/australia/)
@@ -71,59 +63,104 @@ destinations[,c('id','lon','lat')] <- points[,c('id','DESTLONG','DESTLAT')]
 # set up
 r5r_core <- setup_r5(data_path = data_path, verbose = FALSE)
 
-
 # set inputs
 modes <- c("BICYCLE","CAR","BUS","RAIL","TRAM")
 departure_datetime <- as.POSIXct("16-10-2019 07:45:00",
                                  format = "%d-%m-%Y %H:%M:%S")
 
-
+# Create empty database tables to hold results
 for (mode in modes){
-  if(dbExistsTable(pg.RPostgres, mode)==FALSE){
-    # Create table to hold results (coordinates not stored; they could be linked if required)
-    create_table <- paste0(
-      "CREATE TABLE ",
-       mode,
-      ' (
-      "fromId" integer PRIMARY KEY,
-      "toId" integer,
-      "option" integer,
-      "segment" integer,
-      "mode" varchar(8),
-      "total_duration" real,
-      "segment_duration" real,
-      "wait" real,
-      "distance" integer)
-      ')
-    res <- dbSendQuery(pg.RPostgres, create_table)
-  
-  # Clean up and close database connection
-  dbClearResult(res)
+      # Create table to hold results (coordinates not stored; they could be linked if required)
+      pg.RPostgres <- dbConnect(RPostgres::Postgres(), 
+                            dbname   = db,
+                            host     = host,
+                            port     = port,
+                            user     = key_get('database_user'),
+                            password = key_get('database_password'))
+      create_table <- paste0(
+        "CREATE TABLE IF NOT EXISTS ",
+         mode,
+        ' (
+        "fromId" integer PRIMARY KEY,
+        "option" integer,
+        "segment" integer,
+        "mode" varchar(8),
+        "total_duration" real,
+        "segment_duration" real,
+        "wait" real,
+        "distance" integer)
+        ')
+      res <- dbSendQuery(pg.RPostgres, create_table)
+    
+    # Clean up and close database connection
+    dbClearResult(res)
 }
-  
-  
-  # calculate OD results
-  dit <- detailed_itineraries(  
-                      r5r_core,
-                      origins[1:5],
-                      destinations[1:5],
-                      mode = mode,
-                      mode_egress = "WALK",
-                      departure_datetime = departure_datetime,
-                      max_walk_dist = Inf,
-                      max_bike_dist = Inf,
-                      max_trip_duration = 120L,
-                      walk_speed = 3.6,
-                      bike_speed = 12,
-                      max_rides = 3,
-                      max_lts = 2,
-                      shortest_path = TRUE,
-                      n_threads = Inf,
-                      verbose = FALSE,
-                      progress = TRUE,
-                      drop_geometry = TRUE
-                    )
-  #results[mode] <- dit
-  #fwrite(results[mode], paste0(data_path,"/results_",mode,".csv"))
+
+# Prepare to loop over chunks to mitigate risk of memory error, and slowing associated with this
+records <- nrow(origins)
+records <- 237
+chunk_size <- 100
+for(i in 1:ceiling(records / chunkSize)){  
+  lower = ((i-1)*chunkSize+1)
+  upper = min(records,(i*chunkSize))
+  for (mode in modes){
+    # calculate OD results
+    # For 'walk' mode, walking is unbounded
+    # for other modes however, there is a maximum of 1600m walk (about 15 mins)
+    # This avoids the observed RAIL restricted scenario of 
+    #   - walk 47 mins for train, 
+    #   - catch train for 2 mins, 
+    #   - then walk further 40 mins
+    dit <- detailed_itineraries(  
+                        r5r_core,
+                        origins[lower:upper,],
+                        destinations[lower:upper,],
+                        mode = mode,
+                        mode_egress = "WALK",
+                        departure_datetime = departure_datetime,
+                        max_walk_dist = ifelse(mode=='WALK', Inf, 1600),
+                        max_bike_dist = Inf,
+                        max_trip_duration = 120L,
+                        walk_speed = 3.6,
+                        bike_speed = 12,
+                        max_rides = 3,
+                        max_lts = 2,
+                        shortest_path = TRUE,
+                        n_threads = Inf,
+                        verbose = FALSE,
+                        progress = TRUE,
+                        drop_geometry = TRUE
+                      )
+    
+    # open Postgres connection
+    pg.RPostgres <- dbConnect(RPostgres::Postgres(), 
+                          dbname   = db,
+                          host     = host,
+                          port     = port,
+                          user     = key_get('database_user'),
+                          password = key_get('database_password'))
+    insert_query <- paste("INSERT INTO",mode,"VALUES($1, $2, $3, $4, $5, $6, $7, $8)")
+    # insert simulation result to as database row 
+    res <- dbSendQuery(pg.RPostgres, 
+                       insert_query, 
+                       params=unname(as.list(
+                          dit[,list(
+                                as.integer(fromId),
+                                as.integer(option),
+                                as.integer(segment),
+                                as.character(mode),
+                                as.numeric(total_duration),
+                                as.numeric(segment_duration),
+                                as.numeric(wait),
+                                as.integer(distance)
+                                )])))
+    # clean up and release connection
+    dbClearResult(res)
+    dbDisconnect(pg.RPostgres)
+  }
 }
+
+
 ```
+
+
