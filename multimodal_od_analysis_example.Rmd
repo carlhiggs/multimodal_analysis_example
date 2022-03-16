@@ -9,8 +9,16 @@ The installation of Java 11 is required, along with r5r and other packages used 
 
 The analysis was run using R 4.1.3, within RStudio 1.4
 
-```{r}
+```{r echo=False}
 install.packages('r5r')
+install.packages('keyring')
+install.packages('RPostgres')
+
+library(keyring)
+## Set the following secrets, if not already set
+# key_set('database_user')
+# key_set('database_password')
+
 ```
 
 # Setup
@@ -21,11 +29,28 @@ options(java.parameters = "-Xmx4G")
 #Load libraries
 library(r5r)
 library(data.table)
+library(parallel) # For parallel processing
+library(DBI)      # used to connext to Postgresql using RPostgres
 
 # Set the path to your project directory
-
 data_path <- "C:/Users/E33390/OneDrive - RMIT University/projects/JIBE/multimodal_analysis_example"
 list.files(data_path)
+
+# Set up database connection (assumes you have already created the output database)
+# e.g. by entering the following in psql:
+# CREATE DATABASE multimodal_melbourne_2019;
+
+port <- 5432
+host <- 'localhost'
+db <- 'multimodal_melbourne_2019'
+
+pg.RPostgres <- dbConnect(RPostgres::Postgres(), 
+                          dbname   = db,
+                          host     = host,
+                          port     = port,
+                          user     = key_get('database_user'),
+                          password = key_get('database_password'))
+
 ```
 The project directory should contain:
 - an OSM excerpt for the region of interest, (http://download.openstreetmap.fr/extracts/oceania/australia/)
@@ -52,14 +77,36 @@ modes <- c("BICYCLE","CAR","BUS","RAIL","TRAM")
 departure_datetime <- as.POSIXct("16-10-2019 07:45:00",
                                  format = "%d-%m-%Y %H:%M:%S")
 
-results <- list()
 
 for (mode in modes){
+  if(dbExistsTable(pg.RPostgres, mode)==FALSE){
+    # Create table to hold results (coordinates not stored; they could be linked if required)
+    create_table <- paste0(
+      "CREATE TABLE ",
+       mode,
+      ' (
+      "fromId" integer PRIMARY KEY,
+      "toId" integer,
+      "option" integer,
+      "segment" integer,
+      "mode" varchar(8),
+      "total_duration" real,
+      "segment_duration" real,
+      "wait" real,
+      "distance" integer)
+      ')
+    res <- dbSendQuery(pg.RPostgres, create_table)
+  
+  # Clean up and close database connection
+  dbClearResult(res)
+}
+  
+  
   # calculate OD results
-  results[mode] <- detailed_itineraries(  
+  dit <- detailed_itineraries(  
                       r5r_core,
-                      origins,
-                      destinations,
+                      origins[1:5],
+                      destinations[1:5],
                       mode = mode,
                       mode_egress = "WALK",
                       departure_datetime = departure_datetime,
@@ -76,6 +123,7 @@ for (mode in modes){
                       progress = TRUE,
                       drop_geometry = TRUE
                     )
-  fwrite(results[mode], data_path + "/results_"+mode+".csv")
+  #results[mode] <- dit
+  #fwrite(results[mode], paste0(data_path,"/results_",mode,".csv"))
 }
 ```
