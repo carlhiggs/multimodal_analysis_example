@@ -1,0 +1,9 @@
+.git
+.RData
+.Rhistory
+*.csv
+*.dat
+*.gtfs.zip
+*.pbf
+*.pbf.mapdb
+*.pbf.mapdb.p
