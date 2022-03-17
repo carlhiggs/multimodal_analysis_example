@@ -35,7 +35,7 @@ library(keyring)
 # Setup
 ```{r echo=False, include=FALSE}
 # Increase memory available
-options(java.parameters = "-Xmx4G")
+options(java.parameters = "-Xmx16G")
 
 #Load libraries
 library(r5r)
@@ -143,9 +143,9 @@ for(i in 1:n_chunks){
                         mode = mode,
                         mode_egress = "WALK",
                         departure_datetime = departure_datetime,
-                        max_walk_dist = 20000,
+                        max_walk_dist = 3200,
                         max_bike_dist = Inf,
-                        max_trip_duration = 240L,
+                        max_trip_duration = 120L,
                         walk_speed = 3.6,
                         bike_speed = 12,
                         max_rides = 3,
@@ -192,9 +192,9 @@ end_time = Sys.time()
 analysis_parameters <- paste0("This analysis was run seperately for the modes [",paste(modes,collapse=', '),"] using the following methodological parameters for the r5r detailed_itineraries() function:\n",
     "    mode_egress = 'WALK',\n",
     "    departure_datetime = departure_datetime,\n",
-    "    max_walk_dist = 20000,\n",
+    "    max_walk_dist = 3200,\n",
     "    max_bike_dist = Inf,\n",
-    "    max_trip_duration =  240L,\n",
+    "    max_trip_duration =  120L,\n",
     "    walk_speed = 3.6,\n",
     "    bike_speed = 12,\n",
     "    max_rides = 3,\n",
@@ -217,6 +217,8 @@ cat(analysis_parameters,file=paste0(data_path,"/parameters - ",format(Sys.time()
 Processing the 19,064 records across the 6 separate modes of walking, cycling, car, bus, rail and tram, with allowance for walking egress of up to 1600m and maximum total trip duration of 2 hours, took approximately 32 minutes.  The analysis was run on an x64 computer running Windows 11 Pro for Workstations, with Intel Xeon 3.4Ghz 6-core processor with 32 GB ram.
 
 Processing the 19,064 records across the 6 separate modes of walking, cycling, car, bus, rail and tram, with allowance for walking egress of up to 1600m and maximum total trip duration of 8 hours for walking and 4 hours for other modes, took approximately 51 minutes.  The analysis was run on an x64 computer running Windows 10 Enterprise, with Intel Xeon 3.7Ghz 8-core processor with 64³ GB ram.
+
+Processing the 19,064 records across the 6 separate modes of walking, cycling, car, bus, rail and tram, with allowance for walking egress of up to 3200m and maximum total trip duration of 2 hours took approximately 29.4 minutes.  The analysis was run on an x64 computer running Windows 10 Enterprise, with Intel Xeon 3.7Ghz 8-core processor with 64³ GB ram.
 
 Completed results are exported from the database using PSQL to CSV using:
 ```{r}
