@@ -64,6 +64,7 @@ The project directory should contain:
 
 # Analysis
 ```{r}
+start_time = Sys.time()
 points <- fread(file.path(data_path, "workEduTrips_longlat.csv"))
 
 origins <- data.table()
@@ -142,9 +143,9 @@ for(i in 1:n_chunks){
                         mode = mode,
                         mode_egress = "WALK",
                         departure_datetime = departure_datetime,
-                        max_walk_dist = ifelse(mode=='WALK', Inf, 1600),
+                        max_walk_dist = Inf,
                         max_bike_dist = Inf,
-                        max_trip_duration =  ifelse(mode=='WALK', 480L, 240L),
+                        max_trip_duration = 480L,
                         walk_speed = 3.6,
                         bike_speed = 12,
                         max_rides = 3,
@@ -186,6 +187,44 @@ for(i in 1:n_chunks){
 
 stop_r5(r5r_core)
 rJava::.jgc(R.gc = TRUE)
+end_time = Sys.time()
+
+analysis_parameters <- paste0("This analysis was run seperately for the modes [",paste(modes,collapse=', '),"] using the following methodological parameters for the r5r detailed_itineraries() function:\n",
+    "    mode_egress = 'WALK',\n",
+    "    departure_datetime = departure_datetime,\n",
+    "    max_walk_dist = Inf,\n",
+    "    max_bike_dist = Inf,\n",
+    "    max_trip_duration =  480L,\n",
+    "    walk_speed = 3.6,\n",
+    "    bike_speed = 12,\n",
+    "    max_rides = 3,\n",
+    "    max_lts = 2,\n",
+    "    shortest_path = TRUE,\n",
+    "\nThe datasources used were:\n",
+    " - workEduTrips_longlat.csv\n",
+    " - au_vic_ptv_20190920.gtfs.zip\n",
+    " - victoria_2022-03-15.osm.pbf\n",
+    "\n\nAnalysis start: ",format(start_time,usetz = TRUE),
+    "\nAnalysis end: ",format(end_time,usetz = TRUE),
+    "\nDuration: ",format(round(end_time-start_time,2),usetz = TRUE),
+    "\nNumber of records processed: ",records,
+    "\n\n",paste(Sys.info(),collapse = ' '))
+cat(analysis_parameters)
+cat(analysis_parameters,file=paste0(data_path,"/parameters - ",format(Sys.time(),'%d-%b-%Y %H.%M'),".txt"))
+
 ```
 
 Processing the 19,064 records across the 6 separate modes of walking, cycling, car, bus, rail and tram, with allowance for walking egress of up to 1600m and maximum total trip duration of 2 hours, took approximately 32 minutes.  The analysis was run on an x64 computer running Windows 11 Pro for Workstations, with Intel Xeon 3.4Ghz 6-core processor with 32 GB ram.
+
+Processing the 19,064 records across the 6 separate modes of walking, cycling, car, bus, rail and tram, with allowance for walking egress of up to 1600m and maximum total trip duration of 8 hours for walking and 4 hours for other modes, took approximately 51 minutes.  The analysis was run on an x64 computer running Windows 10 Enterprise, with Intel Xeon 3.7Ghz 8-core processor with 64³ GB ram.
+
+Completed results are exported from the database using PSQL to CSV using:
+```{r}
+for (mode in modes){
+  cat(paste0("\COPY ",mode," TO '",data_path,"/results_",mode,"2019.csv' WITH (FORMAT CSV, HEADER);"))
+)
+  
+}
+
+```
+
