@@ -134,6 +134,7 @@ for(i in 1:n_chunks){
     #   - walk 47 mins for train, 
     #   - catch train for 2 mins, 
     #   - then walk further 40 mins
+    # To limit trip duration, we allow 8 hours for walking and 4 hours for PT
     dit <- detailed_itineraries(  
                         r5r_core,
                         origins[lower:upper,],
@@ -143,7 +144,7 @@ for(i in 1:n_chunks){
                         departure_datetime = departure_datetime,
                         max_walk_dist = ifelse(mode=='WALK', Inf, 1600),
                         max_bike_dist = Inf,
-                        max_trip_duration = 120L,
+                        max_trip_duration =  ifelse(mode=='WALK', 480L, 240L),
                         walk_speed = 3.6,
                         bike_speed = 12,
                         max_rides = 3,
@@ -187,4 +188,4 @@ stop_r5(r5r_core)
 rJava::.jgc(R.gc = TRUE)
 ```
 
-
+Processing the 19,064 records across the 6 separate modes of walking, cycling, car, bus, rail and tram, with allowance for walking egress of up to 1600m and maximum total trip duration of 2 hours, took approximately 32 minutes.  The analysis was run on an x64 computer running Windows 11 Pro for Workstations, with Intel Xeon 3.4Ghz 6-core processor with 32 GB ram.
