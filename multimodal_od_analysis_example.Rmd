@@ -143,9 +143,9 @@ for(i in 1:n_chunks){
                         mode = mode,
                         mode_egress = "WALK",
                         departure_datetime = departure_datetime,
-                        max_walk_dist = Inf,
+                        max_walk_dist = 20000,
                         max_bike_dist = Inf,
-                        max_trip_duration = 480L,
+                        max_trip_duration = 240L,
                         walk_speed = 3.6,
                         bike_speed = 12,
                         max_rides = 3,
@@ -192,9 +192,9 @@ end_time = Sys.time()
 analysis_parameters <- paste0("This analysis was run seperately for the modes [",paste(modes,collapse=', '),"] using the following methodological parameters for the r5r detailed_itineraries() function:\n",
     "    mode_egress = 'WALK',\n",
     "    departure_datetime = departure_datetime,\n",
-    "    max_walk_dist = Inf,\n",
+    "    max_walk_dist = 20000,\n",
     "    max_bike_dist = Inf,\n",
-    "    max_trip_duration =  480L,\n",
+    "    max_trip_duration =  240L,\n",
     "    walk_speed = 3.6,\n",
     "    bike_speed = 12,\n",
     "    max_rides = 3,\n",
@@ -221,9 +221,7 @@ Processing the 19,064 records across the 6 separate modes of walking, cycling, c
 Completed results are exported from the database using PSQL to CSV using:
 ```{r}
 for (mode in modes){
-  cat(paste0("\COPY ",mode," TO '",data_path,"/results_",mode,"2019.csv' WITH (FORMAT CSV, HEADER);"))
-)
-  
+  cat(paste0("\n\n\\COPY ",mode," TO '",data_path,"/results_",mode,"2019.csv' WITH (FORMAT CSV, HEADER);"))
 }
 
 ```
