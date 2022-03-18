@@ -20,10 +20,10 @@ The installation of Java 11 and PostgreSQL is required, along with r5r and other
 The analysis was run using R 4.1.3, within RStudio 1.4
 
 ```{r echo=False, include=FALSE}
-install.packages('r5r')
-install.packages('keyring')
-install.packages('RPostgres')
-install.packages('progress')
+#install.packages('r5r')
+#install.packages('keyring')
+#install.packages('RPostgres')
+#install.packages('progress')
 
 library(keyring)
 ## Set the following secrets, if not already set
@@ -79,7 +79,7 @@ destinations[,id:=as.character(id)]
 r5r_core <- setup_r5(data_path = data_path, verbose = FALSE)
 
 # set inputs
-modes <- c("WALK","BICYCLE","CAR","BUS","RAIL","TRAM")
+modes <- c("WALK","BICYCLE","CAR","BUS","RAIL","TRAM","TRANSIT")
 departure_datetime <- as.POSIXct("16-10-2019 07:45:00",
                                  format = "%d-%m-%Y %H:%M:%S")
 
@@ -143,11 +143,11 @@ for(i in 1:n_chunks){
                         mode = mode,
                         mode_egress = "WALK",
                         departure_datetime = departure_datetime,
-                        max_walk_dist = 3200,
+                        max_walk_dist = 5000,
                         max_bike_dist = Inf,
-                        max_trip_duration = 120L,
-                        walk_speed = 3.6,
-                        bike_speed = 12,
+                        max_trip_duration = 180L,
+                        walk_speed = 5,
+                        bike_speed = 14,
                         max_rides = 3,
                         max_lts = 2,
                         shortest_path = TRUE,
@@ -223,7 +223,7 @@ Processing the 19,064 records across the 6 separate modes of walking, cycling, c
 Completed results are exported from the database using PSQL to CSV using:
 ```{r}
 for (mode in modes){
-  cat(paste0("\n\n\\COPY ",mode," TO '",data_path,"/results_",mode,"2019.csv' WITH (FORMAT CSV, HEADER);"))
+  cat(paste0("\n\n\\COPY ",mode," TO '",data_path,"/results_",mode,"_2019.csv' WITH (FORMAT CSV, HEADER);"))
 }
 
 ```
