@@ -64,6 +64,24 @@ The project directory should contain:
 
 # Analysis
 ```{r}
+# parameters
+modes <- c("WALK","BICYCLE","CAR","BUS","RAIL","TRAM","TRANSIT")
+departure_datetime <- as.POSIXct("16-10-2019 07:45:00",
+                                 format = "%d-%m-%Y %H:%M:%S")
+max_walk_dist = 5000
+max_bike_dist = Inf
+max_trip_duration = 180L
+walk_speed = 5 
+bike_speed = 14 
+max_rides = 3 # transit transfers, see detailed_itineraries() help
+max_lts = 2 # cyclist stress, see detailed_itineraries() help
+
+# walking and cycling speeds based on  Australian Government report (BITRE), 
+# https://www.bitre.gov.au/sites/default/files/rr_144.pdf, Table 7.3
+# presenting average distance and speed of commuting trips and tours by priority transport mode, 
+# from household travel surveys of Greater Sydney, 2008–13
+
+# start analysis
 start_time = Sys.time()
 points <- fread(file.path(data_path, "workEduTrips_longlat.csv"))
 
@@ -77,11 +95,6 @@ destinations[,id:=as.character(id)]
 
 # set up
 r5r_core <- setup_r5(data_path = data_path, verbose = FALSE)
-
-# set inputs
-modes <- c("WALK","BICYCLE","CAR","BUS","RAIL","TRAM","TRANSIT")
-departure_datetime <- as.POSIXct("16-10-2019 07:45:00",
-                                 format = "%d-%m-%Y %H:%M:%S")
 
 # Create empty database tables to hold results
 for (mode in modes){
@@ -123,6 +136,8 @@ pb <- progress_bar$new(format = "(:spin) [:bar] :percent [Elapsed time: :elapsed
                        clear = FALSE,    
                        width = 100)   
 
+
+
 for(i in 1:n_chunks){  
   pb$tick()
   lower = ((i-1)*chunk_size+1)
@@ -143,13 +158,13 @@ for(i in 1:n_chunks){
                         mode = mode,
                         mode_egress = "WALK",
                         departure_datetime = departure_datetime,
-                        max_walk_dist = 5000,
-                        max_bike_dist = Inf,
-                        max_trip_duration = 180L,
-                        walk_speed = 5,
-                        bike_speed = 14,
-                        max_rides = 3,
-                        max_lts = 2,
+                        max_walk_dist = max_walk_dist,
+                        max_bike_dist = max_bike_dist,
+                        max_trip_duration = max_trip_duration,
+                        walk_speed = walk_speed,
+                        bike_speed = bike_speed,
+                        max_rides = max_rides,
+                        max_lts = max_lts,
                         shortest_path = TRUE,
                         n_threads = Inf,
                         verbose = FALSE,
@@ -192,13 +207,13 @@ end_time = Sys.time()
 analysis_parameters <- paste0("This analysis was run seperately for the modes [",paste(modes,collapse=', '),"] using the following methodological parameters for the r5r detailed_itineraries() function:\n",
     "    mode_egress = 'WALK',\n",
     "    departure_datetime = departure_datetime,\n",
-    "    max_walk_dist = 5000,\n",
-    "    max_bike_dist = Inf,\n",
-    "    max_trip_duration =  180L,\n",
-    "    walk_speed = 5,\n",
-    "    bike_speed = 14,\n",
-    "    max_rides = 3,\n",
-    "    max_lts = 2,\n",
+    "    max_walk_dist = ",max_walk_dist,",\n",
+    "    max_bike_dist = ",max_bike_dist,",\n",
+    "    max_trip_duration =  ",max_trip_duration,",\n",
+    "    walk_speed = ",walk_speed,",\n",
+    "    bike_speed = ",bike_speed,",\n",
+    "    max_rides = ",max_rides,",\n",
+    "    max_lts = ",max_lts,",\n",
     "    shortest_path = TRUE,\n",
     "\nThe datasources used were:\n",
     " - workEduTrips_longlat.csv\n",
